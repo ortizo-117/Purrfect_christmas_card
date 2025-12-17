@@ -1,0 +1,293 @@
+---
+
+title: "Cat Postcard Lab: A Reproducible Holiday Incident"
+author: "Cat Ops Team"
+date: "`r Sys.Date()`"
+output:
+html_document:
+toc: true
+toc_depth: 2
+df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+echo = TRUE,
+message = FALSE,
+warning = FALSE
+)
+set.seed(25) # for reproducible chaos
+```
+
+# 🧪 What is this?
+
+This is a **companion R Markdown** file for the *Christmas Postcard With Your Cat* README.
+
+It runs a fully reproducible experiment to answer the world’s most urgent question:
+
+> **How many treats does it take to get one (1) usable photo?**
+
+---
+
+# 🐱 Meet the model
+
+We will simulate a cat photo session using a scientifically rigorous system called **Vibes™**.
+
+```{r}
+cat_profile <- list(
+name = sample(c("Miso", "Pickles", "Sir Floof", "Chairman Meow", "Bean"), 1),
+mood = sample(c("cooperative", "suspicious", "chaotic neutral", "sleepy", "feral holiday gremlin"), 1),
+floof_level = sample(1:10, 1),
+zoomies_probability = runif(1, 0.1, 0.9)
+)
+cat_profile
+
+
+
+```
+Inline report: **`r cat_profile$name`** is currently feeling **`r cat_profile$mood`** with a floof level of **`r cat_profile$floof_level`/10**.
+---
+
+# 🎅 Generate a postcard caption
+
+We will generate captions using a carefully curated phrase bank.
+
+```{r}
+caption_bank <- list(
+opener = c("Meowy Christmas!", "Happy Pawlidays!", "Season’s Greetings!", "Merry Catmas!"),
+middle = c(
+"May your treats be plentiful",
+"May your boxes be infinite",
+"May your ornaments survive",
+"May your naps be uninterrupted"
+),
+closer = c("Love," , "With judgement," , "Respectfully," , "PSPSPS," )
+)
+
+make_caption <- function(name) {
+paste(
+sample(caption_bank$opener, 1),
+sample(caption_bank$middle, 1),
+"\n\n",
+sample(caption_bank$closer, 1),
+name
+)
+}
+
+caption <- make_caption(cat_profile$name)
+cat(caption)
+
+
+```
+
+---
+
+# 📸 Simulate a photo session
+
+We’ll model each photo attempt as a random event influenced by:
+
+* treats deployed
+* floof level
+* mood (vibes)
+* zoomies probability
+
+A photo is considered **usable** if:
+
+* eyes are open
+* cat is in frame
+* accessories did not start a diplomatic incident
+
+# Convert mood to a "compliance" multiplier
+
+```{r}
+# Convert mood to a "compliance" multiplier
+mood_multiplier <- function(mood) {
+  switch(
+    mood,
+    cooperative = 1.25,
+    sleepy = 1.05,
+    suspicious = 0.85,
+    "chaotic neutral" = 0.75,
+    "feral holiday gremlin" = 0.55,
+    0.8
+  )
+}
+
+
+simulate_attempt <- function(treats, floof, zoomies_p, mood) {
+  vibe <- mood_multiplier(mood)
+  
+  
+  # probabilities (bounded in [0,1])
+  in_frame_p <- pmin(0.95, 0.35 + 0.05 * treats + 0.02 * floof) * vibe
+  eyes_open_p <- pmin(0.98, 0.55 + 0.03 * treats) * vibe
+  no_incident_p <- pmax(0.05, 0.90 - 0.12 * zoomies_p) * (2 - vibe) # chaos increases incidents
+  
+  
+  in_frame <- runif(1) < in_frame_p
+  eyes_open <- runif(1) < eyes_open_p
+  no_incident <- runif(1) < no_incident_p
+  
+  
+  usable <- in_frame && eyes_open && no_incident
+  
+  
+  outcome <- if (usable) {
+    "usable"
+  } else if (!in_frame) {
+    "cat has left the scene"
+  } else if (!eyes_open) {
+    "blink captured (art)"
+  } else {
+    "accessory incident"
+  }
+  
+  
+  list(
+    usable = usable,
+    in_frame = in_frame,
+    eyes_open = eyes_open,
+    no_incident = no_incident,
+    outcome = outcome
+  )
+}
+
+
+run_session <- function(n_attempts = 30, starting_treats = 0) {
+  treats <- starting_treats
+  attempts <- vector("list", n_attempts)
+  
+  
+  for (i in seq_len(n_attempts)) {
+    # deploy treats strategically: increase when failure piles up
+    if (i %% 5 == 0) treats <- treats + 1
+    
+    
+    attempts[[i]] <- c(list(
+      attempt = i,
+      treats = treats
+    ), simulate_attempt(
+      treats = treats,
+      floof = cat_profile$floof_level,
+      zoomies_p = cat_profile$zoomies_probability,
+      mood = cat_profile$mood
+    ))
+    
+    
+    # stop early if we got a usable photo
+    if (attempts[[i]]$usable) break
+  }
+  
+  
+  df <- do.call(rbind, lapply(attempts, function(x) {
+    if (is.null(x)) return(NULL)
+    data.frame(
+      attempt = x$attempt,
+      treats = x$treats,
+      usable = x$usable,
+      outcome = x$outcome,
+      stringsAsFactors = FALSE
+    )
+  }))
+  
+  
+  df
+}
+
+
+session <- run_session(n_attempts = 40)
+head(session, 10)
+```
+
+
+
+## Session verdict
+
+```{r}
+usable_row <- which(session$usable)
+if (length(usable_row) > 0) {
+  i <- usable_row[1]
+  paste(
+    "SUCCESS after", session$attempt[i], "attempt(s) using",
+    session$treats[i], "treat tier(s)."
+  )
+} else {
+  "No usable photos. The cat has won."
+}
+
+```
+
+---
+
+# 📊 Plot the chaos
+
+This plot shows the outcomes per attempt.
+
+```{r}
+# Encode outcomes for plotting
+
+outcome_levels <- c("usable", "blink captured (art)", "accessory incident", "cat has left the scene")
+
+session$outcome <- factor(session$outcome, levels = outcome_levels)
+
+plot(
+  x = session$attempt,
+  y = as.numeric(session$outcome),
+  xlab = "Attempt",
+  ylab = "Outcome (scientific units)",
+  yaxt = "n",
+  pch = 16
+)
+axis(2, at = seq_along(outcome_levels), labels = outcome_levels, las = 2)
+
+abline(v = which(session$usable), lty = 2)
+
+```
+
+# 🖨️ Print a "postcard" in the console
+
+Because nothing says "holiday" like rendering your cat as text.
+
+```{r}
+cat_ascii <- c(
+"      /\\_/\\",
+"     ( o.o )   * jingles ominously *",
+"      > ^ <",
+"",
+"  [ Christmas Postcard Prototype ]"
+)
+
+cat(paste(cat_ascii, collapse = "\n"), "\n\n")
+cat(caption, "\n")
+
+```
+
+---
+
+# 💾 Optional: Export postcard text
+
+This chunk writes a small text file you can include in your repo or attach to an email.
+
+```{r}
+postcard_text <- paste(cat_ascii, collapse = "\n")
+postcard_text <- paste(postcard_text, "\n\n", caption)
+
+outfile <- "postcard.txt"
+writeLines(postcard_text, con = outfile)
+outfile
+```
+
+
+
+---
+
+# ✅ Final notes
+
+If this knitted successfully, you have:
+
+* a reproducible simulation
+* a caption generator
+* a chaos plot
+* a freshly exported `postcard.txt`
+
+Most importantly, you have evidence that **science can be festive**.
