@@ -80,6 +80,41 @@ cat(caption)
 
 ```
 
+# 🖨️ Print a "postcard" in the console
+
+Because nothing says "holiday" like rendering your cat as text.
+
+```{r}
+cat_ascii <- c(
+"      /\\_/\\",
+"     ( o.o )   * jingles ominously *",
+"      > ^ <",
+"",
+"  [ Christmas Postcard Prototype ]"
+)
+
+cat(paste(cat_ascii, collapse = "\n"), "\n\n")
+cat(caption, "\n")
+
+```
+
+---
+
+# 💾 Optional: Export postcard text
+
+This chunk writes a small text file you can include in your repo or attach to an email.
+
+```{r}
+postcard_text <- paste(cat_ascii, collapse = "\n")
+postcard_text <- paste(postcard_text, "\n\n", caption)
+
+outfile <- "postcard.txt"
+writeLines(postcard_text, con = outfile)
+outfile
+```
+
+
+
 ---
 
 # 📸 Simulate a photo session
@@ -243,41 +278,6 @@ axis(2, at = seq_along(outcome_levels), labels = outcome_levels, las = 2)
 abline(v = which(session$usable), lty = 2)
 
 ```
-
-# 🖨️ Print a "postcard" in the console
-
-Because nothing says "holiday" like rendering your cat as text.
-
-```{r}
-cat_ascii <- c(
-"      /\\_/\\",
-"     ( o.o )   * jingles ominously *",
-"      > ^ <",
-"",
-"  [ Christmas Postcard Prototype ]"
-)
-
-cat(paste(cat_ascii, collapse = "\n"), "\n\n")
-cat(caption, "\n")
-
-```
-
----
-
-# 💾 Optional: Export postcard text
-
-This chunk writes a small text file you can include in your repo or attach to an email.
-
-```{r}
-postcard_text <- paste(cat_ascii, collapse = "\n")
-postcard_text <- paste(postcard_text, "\n\n", caption)
-
-outfile <- "postcard.txt"
-writeLines(postcard_text, con = outfile)
-outfile
-```
-
-
 
 ---
 
